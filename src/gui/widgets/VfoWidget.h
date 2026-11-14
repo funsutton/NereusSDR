@@ -573,6 +573,8 @@ public:
     void setNbMode(NereusSDR::NbMode m);
     void setNr2Enabled(bool v);
     void setSnbEnabled(bool v);
+    void setRxLevelerMode(NereusSDR::RxLevelerMode mode);
+    void updateRxlToolTip();
     void setApfEnabled(bool v);
     void setApfTuneHz(int hz);
 
@@ -1251,6 +1253,11 @@ private:
     QString      m_mnrToolTip;
     QPushButton*        m_anfToggle{nullptr};
     QPushButton*        m_snbToggle{nullptr};
+    QPushButton*        m_rxlToggle{nullptr};
+    RxLevelerMode       m_rxlMode{RxLevelerMode::Off};
+    // The mode a left-click restores after Off. Auto until the operator
+    // picks Custom on the setup page.
+    RxLevelerMode       m_rxlLatched{RxLevelerMode::Auto};
     QPushButton*        m_apfToggle{nullptr};
     QLabel*             m_apfLabel{nullptr};        // "APF" row label (S1.9 — promoted from local)
     QSlider*            m_apfTuneSlider{nullptr};

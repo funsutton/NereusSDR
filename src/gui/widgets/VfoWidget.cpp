@@ -487,6 +487,7 @@ warren@wpratt.com
 #include "gui/QtCocoaAccessibleTableCache.h"
 #include "core/BoardCapabilities.h"
 #include "core/ControlRanges.h"
+#include "core/dsp/RxLeveler.h"
 #include "core/SkuUiProfile.h"
 #include "core/HpsdrModel.h"
 #include "core/accessories/AlexController.h"
@@ -2284,6 +2285,15 @@ void VfoWidget::buildDspTab()
     dspGrid->addWidget(m_anfToggle, 2, 0);
     dspGrid->addWidget(m_snbToggle, 2, 1);
 
+    m_rxlToggle = makeToggle(QStringLiteral("RXL"));
+    m_rxlToggle->setToolTip(QStringLiteral(
+        "RX Leveler: evens station loudness on a net. Left-click turns it on or off. "
+        "Right-click opens Setup, DSP, AGC/ALC. Separate from the TX Leveler."));
+    m_rxlToggle->setContextMenuPolicy(Qt::CustomContextMenu);
+    connect(m_rxlToggle, &QWidget::customContextMenuRequested,
+            this, [this](const QPoint&) { emit openSetupRequested(); });
+    dspGrid->addWidget(m_rxlToggle, 2, 2);
+
     // Uniform size for all 9 grid buttons: 64×26 px.
     // User directive: natural button size (not cramped), zero gaps between
     // buttons so their 1px borders abut forming a continuous "board" around
@@ -2292,7 +2302,7 @@ void VfoWidget::buildDspTab()
     // flag width.
     for (auto* btn : {m_nbButton, m_nr1Btn, m_nr2Btn, m_nr3Btn,
                       m_nr4Btn, m_dfnrBtn, m_mnrBtn, m_nnrBtn,
-                      m_anfToggle, m_snbToggle}) {
+                      m_anfToggle, m_snbToggle, m_rxlToggle}) {
         if (btn) {
             btn->setFixedHeight(26);
             btn->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
@@ -2409,6 +2419,16 @@ void VfoWidget::buildDspTab()
     });
     connect(m_snbToggle, &QPushButton::toggled, this, [this](bool on) {
         if (!m_updatingFromModel) { emit snbChanged(on); }
+    });
+    connect(m_rxlToggle, &QPushButton::toggled, this, [this](bool on) {
+        if (m_updatingFromModel || !m_slice) {
+            return;
+        }
+        // Left-click is off, or the last mode that was on. That is Auto
+        // until the setup page has been set to Custom.
+        const RxLevelerMode restored = m_rxlLatched == RxLevelerMode::Off
+            ? RxLevelerMode::Auto : m_rxlLatched;
+        m_slice->setRxLevelerMode(on ? restored : RxLevelerMode::Off);
     });
     connect(m_apfToggle, &QPushButton::toggled, this, [this](bool on) {
         if (!m_updatingFromModel) { emit apfChanged(on); }
@@ -3007,6 +3027,7 @@ void VfoWidget::setMode(DSPMode mode)
     }
     rebuildFilterButtons(mode);
     applyModeVisibility(mode);    // S1.9 — model-driven mode change
+    updateRxlToolTip();
     updateSnrVisibility();        // Phase 3R L1 — show SNR row only in RADE
     updateModeTabAccent();        // Phase 3R L3 — purple accent in RADE
     m_updatingFromModel = false;
@@ -3347,6 +3368,35 @@ void VfoWidget::onNrSelectionRefused(const QString& reason)
     }
 }
 
+void VfoWidget::setRxLevelerMode(RxLevelerMode mode)
+{
+    m_rxlMode = mode;
+    if (mode != RxLevelerMode::Off) {
+        m_rxlLatched = mode;
+    }
+    if (m_rxlToggle && m_rxlToggle->isChecked() != (mode != RxLevelerMode::Off)) {
+        m_updatingFromModel = true;
+        m_rxlToggle->setChecked(mode != RxLevelerMode::Off);
+        m_updatingFromModel = false;
+    }
+    updateRxlToolTip();
+}
+
+void VfoWidget::updateRxlToolTip()
+{
+    if (!m_rxlToggle) {
+        return;
+    }
+    QString tip = QStringLiteral(
+        "RX Leveler: evens station loudness on a net. Left-click turns it on or off. "
+        "Right-click opens Setup, DSP, AGC/ALC. Separate from the TX Leveler.");
+    if (!RxLeveler::modeAllows(m_currentMode)) {
+        tip += QStringLiteral(
+            " Bypassed in this mode, so CW, FM, and digital audio stay unaltered.");
+    }
+    m_rxlToggle->setToolTip(tip);
+}
+
 void VfoWidget::setSnbEnabled(bool v)
 {
     if (m_snbToggle && m_snbToggle->isChecked() != v) {
@@ -3619,6 +3669,8 @@ void VfoWidget::setSlice(SliceModel* slice)
         disconnect(m_slice, &SliceModel::nrSelectionRefused, this, nullptr);
         disconnect(m_slice, &SliceModel::radeReasonChanged,
                    this, &VfoWidget::setRadeReason);
+        disconnect(m_slice, &SliceModel::rxLevelerModeChanged,
+                   this, &VfoWidget::setRxLevelerMode);
     }
     m_slice = QPointer<SliceModel>(slice);
     if (m_fmContainer) {
@@ -3672,6 +3724,12 @@ void VfoWidget::setSlice(SliceModel* slice)
                 this, &VfoWidget::setRadeReason, Qt::UniqueConnection);
     }
     setRadeReason(slice ? slice->radeReason() : QString());
+
+    if (slice) {
+        connect(slice, &SliceModel::rxLevelerModeChanged,
+                this, &VfoWidget::setRxLevelerMode);
+    }
+    setRxLevelerMode(slice ? slice->rxLevelerMode() : RxLevelerMode::Off);
 
     // VAX selector — bidirectional wiring (Phase 3O Sub-Phase 8 Task 8.2)
     if (m_vaxSelector && slice) {

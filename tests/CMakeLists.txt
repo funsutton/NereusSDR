@@ -3991,6 +3991,7 @@ nereus_add_test(tst_tx_latency_dsp)
 # desktop remote window's Opus or L16, the local microphone) through the real
 # WDSP TX channel with the Leveler and PROC, offline; the measurement matrix
 # prints with NEREUS_LEVELER_MATRIX=1.
+nereus_add_test(tst_rx_leveler)
 nereus_add_test(tst_tx_leveler_remote_mic)
 target_compile_definitions(tst_tx_leveler_remote_mic PRIVATE
     NEREUS_SOURCE_DIR="${CMAKE_SOURCE_DIR}")

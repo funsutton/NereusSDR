@@ -13036,6 +13036,9 @@ bool RadioModel::pushSliceStateToChannel(SliceModel* slice, RxChannel* rxCh, boo
     // setter is cached and the channel starts with ANF off, so this does
     // nothing for a slice whose ANF is off.
     rxCh->setAnfEnabled(slice->anfEnabled());
+    rxCh->setRxLeveler(slice->rxLevelerMode(), slice->rxLevelerTargetDb(),
+                       slice->rxLevelerMaxBoostDb(), slice->rxLevelerAttackMs(),
+                       slice->rxLevelerReleaseMs(), slice->rxLevelerPauseHoldMs());
     // APF sub-parameter defaults — From Thetis radio.cs:1986,1948,1967,1929
     // These are set-and-forget on channel creation; run flag follows slice.
     // selection=3 (bi-quad), bw=600Hz, gain=1.0, freq=600.0Hz
@@ -27128,6 +27131,30 @@ void RadioModel::wireSliceSignals(SliceModel* slice)
         }
         scheduleSettingsSave(slice);
     });
+
+    // Receive leveler. One push of the whole set, so a mode change and a
+    // knob change cannot leave the channel with a torn combination.
+    auto pushRxLeveler = [this, slice] {
+        RxChannel* rxCh = m_wdspEngine->rxChannel(slice->sliceIndex());
+        if (rxCh) {
+            rxCh->setRxLeveler(slice->rxLevelerMode(), slice->rxLevelerTargetDb(),
+                               slice->rxLevelerMaxBoostDb(), slice->rxLevelerAttackMs(),
+                               slice->rxLevelerReleaseMs(), slice->rxLevelerPauseHoldMs());
+        }
+        scheduleSettingsSave(slice);
+    };
+    connect(slice, &SliceModel::rxLevelerModeChanged, this,
+            [pushRxLeveler](RxLevelerMode) { pushRxLeveler(); });
+    connect(slice, &SliceModel::rxLevelerTargetDbChanged, this,
+            [pushRxLeveler](int) { pushRxLeveler(); });
+    connect(slice, &SliceModel::rxLevelerMaxBoostDbChanged, this,
+            [pushRxLeveler](int) { pushRxLeveler(); });
+    connect(slice, &SliceModel::rxLevelerAttackMsChanged, this,
+            [pushRxLeveler](int) { pushRxLeveler(); });
+    connect(slice, &SliceModel::rxLevelerReleaseMsChanged, this,
+            [pushRxLeveler](int) { pushRxLeveler(); });
+    connect(slice, &SliceModel::rxLevelerPauseHoldMsChanged, this,
+            [pushRxLeveler](int) { pushRxLeveler(); });
 
     // SNB → WDSP
     // From Thetis Project Files/Source/Console/console.cs:36347

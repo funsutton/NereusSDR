@@ -1092,6 +1092,7 @@ set(CORE_SOURCES
     src/core/WdspThreadCheck.cpp
     src/core/DspControlThread.cpp
     src/core/RxChannel.cpp
+    src/core/dsp/RxLeveler.cpp
     src/core/TxChannel.cpp
     src/models/RadeWaveformModel.cpp
     src/core/session/media/WaveformCodec.cpp
