@@ -453,6 +453,20 @@ private:
     Q_PROPERTY(int        filterLow    READ filterLow    WRITE setFilterLow    NOTIFY filterChanged)
     Q_PROPERTY(int        filterHigh   READ filterHigh   WRITE setFilterHigh   NOTIFY filterChanged)
     Q_PROPERTY(NereusSDR::AGCMode agcMode READ agcMode   WRITE setAgcMode      NOTIFY agcModeChanged)
+    // Receive loudness rider. Per receiver, off until the operator turns
+    // it on. Separate from the transmit leveler.
+    Q_PROPERTY(NereusSDR::RxLevelerMode rxLevelerMode READ rxLevelerMode
+               WRITE setRxLevelerMode NOTIFY rxLevelerModeChanged)
+    Q_PROPERTY(int rxLevelerTargetDb READ rxLevelerTargetDb
+               WRITE setRxLevelerTargetDb NOTIFY rxLevelerTargetDbChanged)
+    Q_PROPERTY(int rxLevelerMaxBoostDb READ rxLevelerMaxBoostDb
+               WRITE setRxLevelerMaxBoostDb NOTIFY rxLevelerMaxBoostDbChanged)
+    Q_PROPERTY(int rxLevelerAttackMs READ rxLevelerAttackMs
+               WRITE setRxLevelerAttackMs NOTIFY rxLevelerAttackMsChanged)
+    Q_PROPERTY(int rxLevelerReleaseMs READ rxLevelerReleaseMs
+               WRITE setRxLevelerReleaseMs NOTIFY rxLevelerReleaseMsChanged)
+    Q_PROPERTY(int rxLevelerPauseHoldMs READ rxLevelerPauseHoldMs
+               WRITE setRxLevelerPauseHoldMs NOTIFY rxLevelerPauseHoldMsChanged)
     Q_PROPERTY(int        stepHz       READ stepHz       WRITE setStepHz       NOTIFY stepHzChanged)
     Q_PROPERTY(int        afGain       READ afGain       WRITE setAfGain       NOTIFY afGainChanged)
     Q_PROPERTY(int        rfGain       READ rfGain       WRITE setRfGain       NOTIFY rfGainChanged)
@@ -948,6 +962,19 @@ public:
 
     AGCMode agcMode() const { return m_agcMode; }
     void setAgcMode(AGCMode mode);
+
+    RxLevelerMode rxLevelerMode() const { return m_rxLevelerMode; }
+    void setRxLevelerMode(RxLevelerMode mode);
+    int rxLevelerTargetDb() const { return m_rxLevelerTargetDb; }
+    void setRxLevelerTargetDb(int dB);
+    int rxLevelerMaxBoostDb() const { return m_rxLevelerMaxBoostDb; }
+    void setRxLevelerMaxBoostDb(int dB);
+    int rxLevelerAttackMs() const { return m_rxLevelerAttackMs; }
+    void setRxLevelerAttackMs(int ms);
+    int rxLevelerReleaseMs() const { return m_rxLevelerReleaseMs; }
+    void setRxLevelerReleaseMs(int ms);
+    int rxLevelerPauseHoldMs() const { return m_rxLevelerPauseHoldMs; }
+    void setRxLevelerPauseHoldMs(int ms);
 
     // ---- Tuning step ----
 
@@ -1830,6 +1857,12 @@ signals:
     void dspModeChanged(NereusSDR::DSPMode mode);
     void filterChanged(int low, int high);
     void agcModeChanged(NereusSDR::AGCMode mode);
+    void rxLevelerModeChanged(NereusSDR::RxLevelerMode mode);
+    void rxLevelerTargetDbChanged(int dB);
+    void rxLevelerMaxBoostDbChanged(int dB);
+    void rxLevelerAttackMsChanged(int ms);
+    void rxLevelerReleaseMsChanged(int ms);
+    void rxLevelerPauseHoldMsChanged(int ms);
     void stepHzChanged(int hz);
     void afGainChanged(int gain);
     void rfGainChanged(int gain);
@@ -2036,6 +2069,14 @@ private:
     int     m_filterLow{100};            // USB default from Thetis F5
     int     m_filterHigh{3000};
     AGCMode m_agcMode{AGCMode::Med};
+    // Receive leveler. Off, so an existing receiver sounds as it did.
+    // The custom numbers start at the Auto preset.
+    RxLevelerMode m_rxLevelerMode{RxLevelerMode::Off};
+    int m_rxLevelerTargetDb{-18};
+    int m_rxLevelerMaxBoostDb{12};
+    int m_rxLevelerAttackMs{400};
+    int m_rxLevelerReleaseMs{1500};
+    int m_rxLevelerPauseHoldMs{600};
     // From Thetis console.cs:1984 [v2.10.3.15]: Thetis starts at tune_step_index = 2 (10 Hz).
     int     m_stepHz{100};               // kTuneStepList[5]; NereusSDR default kept pending maintainer review
     int     m_afGain{50};                // 0-100, maps to 0.0-1.0 volume

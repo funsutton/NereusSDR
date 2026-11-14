@@ -107,6 +107,7 @@ class QComboBox;
 class QLabel;
 class QSlider;
 class QSpinBox;
+class QTimer;
 class QTableWidget;
 
 namespace NereusSDR {
@@ -164,6 +165,8 @@ public:
 
 private:
     void updateCustomGating(AGCMode mode);
+    void updateRxLevelerGating(RxLevelerMode mode);
+    void refreshRxLevelerBoost();
     void rebuildForActiveSlice();
 
     QGroupBox*  m_txLevelerGrp{nullptr};
@@ -182,6 +185,15 @@ private:
     QSlider*    m_agcHangThresh{nullptr};
     QCheckBox*  m_autoAgcChk{nullptr};
     QSpinBox*   m_autoAgcOffset{nullptr};
+
+    QComboBox*  m_rxLevelerMode{nullptr};
+    QSpinBox*   m_rxLevelerTarget{nullptr};
+    QSpinBox*   m_rxLevelerMaxBoost{nullptr};
+    QSpinBox*   m_rxLevelerAttack{nullptr};
+    QSpinBox*   m_rxLevelerRelease{nullptr};
+    QSpinBox*   m_rxLevelerHold{nullptr};
+    QLabel*     m_rxLevelerBoostLbl{nullptr};
+    QTimer*     m_rxLevelerBoostTimer{nullptr};
 
     // ── Phase 3M-3a-i Batch 2 Task 2 (D): TX Leveler + TX ALC controls ──
     // Wired bidirectionally to RadioModel::transmitModel() — see
